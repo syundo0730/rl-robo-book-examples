@@ -73,12 +73,11 @@ class _BasicWalkController:
         l_theta_sh_p = 2 * stride_wave
 
         # walking direction control
-        cos_yaw, sin_yaw = obs[[52, 53]]
-        yaw = atan2(sin_yaw, cos_yaw)
+        yaw = obs[52]
         theta_hip_yaw = bend_wave * yaw
 
         # roll stabilization
-        roll_speed = obs[54]
+        roll_speed = obs[53]
         theta_ankle_r += 0.1 * roll_speed
 
         action = np.zeros_like(self._home_pose)
@@ -115,6 +114,8 @@ def main():
         dt = walk_controller.dt
         steps_per_iter = int(60 / dt)  # record 60 sec step
         obs = env.reset()
+        step = 0
+        print(f'Start recording episode for {steps_per_iter}.')
         for step in range(steps_per_iter):
             action = walk_controller.step(obs)
             obs, reward, done, _ = env.step(action)
