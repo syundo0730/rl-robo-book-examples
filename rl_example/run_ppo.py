@@ -49,14 +49,16 @@ clip_param = 0.2
 epoch_per_iter = 4
 batch_size = 64
 max_grad_norm = 0.5
+num_parallel = 16
 
 
-sampler = EpiSampler(env, pol, num_parallel=2, seed=42)
+sampler = EpiSampler(env, pol, num_parallel=num_parallel, seed=seed)
 
 # machina automatically write log (model ,scores, etc..)
 if not os.path.exists(log_dir_name):
     os.mkdir(log_dir_name)
-    os.mkdir(log_dir_name+'/models')
+if not os.path.exists(f'{log_dir_name}/models'):
+    os.mkdir(f'{log_dir_name}/models')
 score_file = os.path.join(log_dir_name, 'progress.csv')
 logger.add_tabular_output(score_file)
 
@@ -65,7 +67,7 @@ total_epi = 0
 total_step = 0
 max_rew = -inf
 max_episodes = 1000000
-max_steps_per_iter = 10000
+max_steps_per_iter = 3000
 
 # train loop
 while max_episodes > total_epi:
