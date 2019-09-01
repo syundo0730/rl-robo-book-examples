@@ -1,9 +1,9 @@
-import time
 import os
+from math import inf
 
 import numpy as np
-import gym
 import torch
+from machina.envs import GymEnv
 from machina.pols import GaussianPol
 from machina.samplers import EpiSampler
 from machina.vfuncs import DeterministicSVfunc
@@ -17,41 +17,43 @@ import premaidai_gym
 from util.simple_net import PolNet, VNet
 
 
-# define your environment
+seed = 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+
+log_dir_name = 'garbage'
 env_name = 'RoboschoolPremaidAIWalker-v0'
-env = gym.make(env_name)
-obs = env.reset()
+env = GymEnv(env_name, log_dir=os.path.join(
+    log_dir_name, 'movie'), record_video=True)
+env.env.seed(seed)
 
 # check dimension of observation space and action space
 observation_space = env.observation_space
 action_space = env.action_space
 
-# define your policy
 # policy
 pol_net = PolNet(observation_space, action_space)
-# pol = CategoricalPol(observation_space, action_space, pol_net)
 pol = GaussianPol(observation_space, action_space, pol_net)
 # value function
 vf_net = VNet(observation_space)
 vf = DeterministicSVfunc(observation_space, vf_net)
 
-# set optimizer to both models
+# optimizer to both models
 optim_pol = torch.optim.Adam(pol_net.parameters(), lr=1e-4)
 optim_vf = torch.optim.Adam(vf_net.parameters(), lr=3e-4)
 
 #  arguments of PPO
-gamma = 0.995
-lam = 1
+gamma = 0.99
+lam = 0.95
 clip_param = 0.2
-epoch_per_iter = 50
+epoch_per_iter = 4
 batch_size = 64
-max_grad_norm = 10
+max_grad_norm = 0.5
 
 
 sampler = EpiSampler(env, pol, num_parallel=2, seed=42)
 
 # machina automatically write log (model ,scores, etc..)
-log_dir_name = 'garbage'
 if not os.path.exists(log_dir_name):
     os.mkdir(log_dir_name)
     os.mkdir(log_dir_name+'/models')
@@ -61,13 +63,9 @@ logger.add_tabular_output(score_file)
 # counter and record for loop
 total_epi = 0
 total_step = 0
-max_rew = -500
-
-# how long will you train
-max_episodes = 100  # for100 eposode
-
-# max timesteps per eposode
-max_steps_per_iter = 150  # 150 frames (= 10 sec)
+max_rew = -inf
+max_episodes = 1000000
+max_steps_per_iter = 10000
 
 # train loop
 while max_episodes > total_epi:
@@ -105,27 +103,21 @@ while max_episodes > total_epi:
     if mean_rew > max_rew:
         torch.save(pol.state_dict(), os.path.join(
             log_dir_name, 'models', 'pol_max.pkl'))
+        torch.save(vf.state_dict(), os.path.join(
+            log_dir_name, 'models', 'vf_max.pkl'))
+        torch.save(optim_pol.state_dict(), os.path.join(
+            log_dir_name, 'models', 'optim_pol_max.pkl'))
+        torch.save(optim_vf.state_dict(), os.path.join(
+            log_dir_name, 'models', 'optim_vf_max.pkl'))
+        max_rew = mean_rew
+
+    torch.save(pol.state_dict(), os.path.join(
+        log_dir_name, 'models', 'pol_last.pkl'))
+    torch.save(vf.state_dict(), os.path.join(
+        log_dir_name, 'models', 'vf_last.pkl'))
+    torch.save(optim_pol.state_dict(), os.path.join(
+        log_dir_name, 'models', 'optim_pol_last.pkl'))
+    torch.save(optim_vf.state_dict(), os.path.join(
+        log_dir_name, 'models', 'optim_vf_last.pkl'))
     del traj
 del sampler
-
-
-# load best policy
-best_path = 'garbage/models/pol_max.pkl'
-best_pol = GaussianPol(observation_space, action_space, pol_net)
-best_pol.load_state_dict(torch.load(best_path))
-
-# show your trained policy's behavior
-done = False
-o = env.reset()
-for _ in range(300):  # show 300 frames (=20 sec)
-    if done:
-        time.sleep(1)  # when the boundary　of eposode
-        o = env.reset()
-    ac_real, ac, a_i = best_pol.deterministic_ac_real(torch.tensor(o, dtype=torch.float))
-    ac_real = ac_real.reshape(pol.action_space.shape)
-    next_o, r, done, e_i = env.step(np.array(ac_real))
-    o = next_o
-    time.sleep(1/15)  # 15fps
-    env.render()
-
-env.close()
