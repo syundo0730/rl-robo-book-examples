@@ -141,7 +141,7 @@ def main():
         print(f'Done episode: {epi_i}, end at step: {step}. Will record result.')
         ep = {k: np.array(v, dtype=np.float32) for k, v in epi.items()}
         epis.append(ep)
-        with open('data/expert_epis/RoboschoolPremaidAIWalker-v0_100epis_new.pkl', 'wb') as f:
+        with open('data/expert_epis/RoboschoolPremaidAIWalker-v0_100epis.pkl', 'wb') as f:
             pickle.dump(epis, f)
 
 
