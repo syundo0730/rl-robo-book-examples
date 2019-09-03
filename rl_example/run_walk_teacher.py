@@ -1,5 +1,5 @@
 import pickle
-from math import radians, atan2, sin, pi, cos
+from math import radians, sin, pi, cos
 
 import gym
 import numpy as np
@@ -33,30 +33,42 @@ class _WalkPhaseGenerator:
 
 class _BasicWalkController:
     def __init__(self, env: gym.Env, period):
-        self.dt = 0.0165
         self._env = env
         self._home_pose = np.full(env.action_space.shape[0], 0.)
         self._home_pose[13] = radians(60)  # right arm
         self._home_pose[18] = radians(-60)  # left arm
         self._period = period
-        self._elapsed = 0
         self._stride_phase_generator = _WalkPhaseGenerator(period, each_stop_period=0.15)
         self._bend_phase_generator = _WalkPhaseGenerator(period, each_stop_period=0.1)
+        self._dt = env.unwrapped.scene.dt
+        self._walk_started_at = None
+
+    @property
+    def _elapsed(self):
+        return self._env.unwrapped.frame * self._dt
+
+    @property
+    def _walk_elapsed(self):
+        return self._elapsed - self._walk_started_at if self._walk_started_at else 0
 
     def step(self, obs):
         normalized_elapsed = self._elapsed % self._period
         phase = normalized_elapsed / self._period
-        roll_wave = radians(5) * sin(TWO_PI * phase)
-        phase_stride = self._stride_phase_generator.update(normalized_elapsed)
-        stride_wave = radians(10) * cos(TWO_PI * phase_stride)
-        phase_bend = self._bend_phase_generator.update(normalized_elapsed)
-        bend_wave = radians(20) * sin(TWO_PI * phase_bend)
-        if 0 < normalized_elapsed < self._period * 0.5:
-            bend_wave_r, bend_wave_l = -bend_wave, 0
-        else:
-            bend_wave_r, bend_wave_l = 0, bend_wave
+        if phase >= 0.75 and not self._walk_started_at:
+            self._walk_started_at = self._elapsed
 
-        self._elapsed += self.dt
+        roll_wave = radians(5) * sin(TWO_PI * phase)
+        if self._walk_started_at:
+            phase_stride = self._stride_phase_generator.update(normalized_elapsed)
+            stride_wave = radians(10) * cos(TWO_PI * phase_stride)
+            phase_bend = self._bend_phase_generator.update(normalized_elapsed)
+            bend_wave = radians(20) * sin(TWO_PI * phase_bend)
+            if 0 < normalized_elapsed < self._period * 0.5:
+                bend_wave_r, bend_wave_l = -bend_wave, 0
+            else:
+                bend_wave_r, bend_wave_l = 0, bend_wave
+        else:
+            stride_wave, bend_wave, bend_wave_r, bend_wave_l = 0, 0, 0, 0
 
         # move legs
         theta_hip_r = -roll_wave
@@ -106,27 +118,30 @@ def main():
 
     env = gym.make('RoboschoolPremaidAIWalker-v0')
 
-    epi_num = 10
+    epi_num = 100
     epis = []
     for epi_i in range(epi_num):
-        epi = {'obs': [], 'acs': [], 'rews': [], 'dones': []}
-        walk_controller = _BasicWalkController(env, period=0.91)
-        dt = walk_controller.dt
-        steps_per_iter = int(60 / dt)  # record 60 sec step
         obs = env.reset()
+        walk_controller = _BasicWalkController(env, period=0.91)
+        dt = walk_controller._dt
+        steps_per_iter = int(10 / dt)  # record 10 sec step
         step = 0
+        epi = {'obs': [], 'acs': [], 'rews': [], 'dones': []}
         print(f'Start recording episode for {steps_per_iter}.')
         for step in range(steps_per_iter):
+            # elapsed = extra['elapsed']
             action = walk_controller.step(obs)
-            obs, reward, done, _ = env.step(action)
-            epi['obs'], epi['acs'], epi['rews'], epi['dones'] = obs, action, reward, int(done)
+            obs, reward, done, extra = env.step(action)
+            epi['obs'].append(obs)
+            epi['acs'].append(action)
+            epi['rews'].append(reward)
+            epi['dones'].append(int(done))
             if done:
                 break
         print(f'Done episode: {epi_i}, end at step: {step}. Will record result.')
         ep = {k: np.array(v, dtype=np.float32) for k, v in epi.items()}
-        ep['a_is'], ep['e_is'] = {}, {}
         epis.append(ep)
-        with open('RoboschoolPremaidAIWalker-v0_100epis.pkl', 'wb') as f:
+        with open('data/expert_epis/RoboschoolPremaidAIWalker-v0_100epis_new.pkl', 'wb') as f:
             pickle.dump(epis, f)
 
 

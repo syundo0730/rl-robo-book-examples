@@ -6,6 +6,8 @@ import torch
 from machina.pols import GaussianPol
 from machina.vfuncs import DeterministicSVfunc
 
+import premaidai_gym
+
 from util.simple_net import PolNet, VNet
 
 

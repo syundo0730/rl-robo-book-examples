@@ -99,7 +99,7 @@ parser.add_argument('--kl_targ', type=float, default=0.01,
 parser.add_argument('--init_kl_beta', type=float,
                     default=1, help='Initial kl coefficient.')
 
-parser.add_argument('--pretrain', action='store_true', default=False,
+parser.add_argument('--pretrain', action='store_true', default=True,
                     help='If True, policy is pretrained by behavioral cloning.')
 parser.add_argument('--bc_batch_size', type=int, default=256)
 parser.add_argument('--bc_epoch', type=int, default=1000)
@@ -184,12 +184,7 @@ optim_pol = torch.optim.Adam(pol_net.parameters(), args.pol_lr)
 optim_vf = torch.optim.Adam(vf_net.parameters(), args.vf_lr)
 
 with open(os.path.join(args.expert_dir, args.expert_fname), 'rb') as f:
-    # expert_epis = pickle.load(f)
     expert_epis = pickle.load(f)
-    new_epis = []
-    for i, _ in enumerate(expert_epis):
-        del expert_epis[i]['a_is'], expert_epis[i]['e_is']
-    print([e.keys() for e in expert_epis])
 expert_traj = Traj()
 expert_traj.add_epis(expert_epis)
 expert_traj = ef.add_next_obs(expert_traj)
