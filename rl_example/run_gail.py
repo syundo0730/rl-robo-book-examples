@@ -31,7 +31,7 @@ from util.simple_net import PolNet, PolNetLSTM, VNet, VNetLSTM, DiscrimNet
 import premaidai_gym
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--log', type=str, default='garbage',
+parser.add_argument('--log', type=str, default='garbage_gail',
                     help='Directory name of log.')
 parser.add_argument('--env_name', type=str,
                     default='RoboschoolPremaidAIWalker-v0', help='Name of environment.')
@@ -39,7 +39,8 @@ parser.add_argument('--env_name', type=str,
 parser.add_argument('--c2d', action='store_true',
                     default=False, help='If True, action is discretized.')
 parser.add_argument('--record', action='store_true',
-                    default=False, help='If True, movie is saved.')
+                    default=True, help='If True, movie is saved.')
+                    # default=False, help='If True, movie is saved.')
 parser.add_argument('--seed', type=int, default=256)
 parser.add_argument('--max_epis', type=int,
                     default=100000000, help='Number of episodes to run.')

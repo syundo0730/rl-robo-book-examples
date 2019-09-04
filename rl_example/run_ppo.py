@@ -29,7 +29,7 @@ from util.simple_net import PolNet, VNet, PolNetLSTM, VNetLSTM
 import premaidai_gym
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--log', type=str, default='garbage',
+parser.add_argument('--log', type=str, default='garbage_ppo',
                     help='Directory name of log.')
 parser.add_argument('--env_name', type=str,
                     default='RoboschoolPremaidAIWalker-v0', help='Name of environment.')
@@ -37,12 +37,14 @@ parser.add_argument('--env_name', type=str,
 parser.add_argument('--c2d', action='store_true',
                     default=False, help='If True, action is discretized.')
 parser.add_argument('--record', action='store_true',
-                    default=False, help='If True, movie is saved.')
+                    default=True, help='If True, movie is saved.')
+                    # default=False, help='If True, movie is saved.')
 parser.add_argument('--seed', type=int, default=256)
 parser.add_argument('--max_epis', type=int,
                     default=10000000, help='Number of episodes to run.')
                     # default=1000000, help='Number of episodes to run.')
-parser.add_argument('--num_parallel', type=int, default=4,
+# parser.add_argument('--num_parallel', type=int, default=4,
+parser.add_argument('--num_parallel', type=int, default=16,
                     help='Number of processes to sample.')
 parser.add_argument('--cuda', type=int, default=-1, help='cuda device number.')
 parser.add_argument('--data_parallel', action='store_true', default=False,
