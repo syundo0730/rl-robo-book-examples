@@ -165,6 +165,10 @@ total_step = 0
 max_rew = -1e6
 kl_beta = args.init_kl_beta
 
+with open('garbage_bc_ppo/models/pol_bc_20190908.pkl', 'rb') as f:
+    pol.load_state_dict(torch.load(
+        f, map_location=lambda storage, location: storage))
+
 if args.pretrain:
     with measure('bc pretrain'):
         for _ in range(args.bc_epoch):
