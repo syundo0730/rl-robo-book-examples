@@ -27,7 +27,7 @@ from util.simple_net import PolNet, PolNetLSTM, VNet, DiscrimNet
 import premaidai_gym
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--log', type=str, default='garbage',
+parser.add_argument('--log', type=str, default='garbage_bc',
                     help='Directory name of log.')
 parser.add_argument('--env_name', type=str,
                     default='RoboschoolPremaidAIWalker-v0', help='Name of environment.')
@@ -40,7 +40,8 @@ parser.add_argument('--record', action='store_true',
 parser.add_argument('--seed', type=int, default=256)
 parser.add_argument('--max_epis', type=int,
                     default=100000000, help='Number of episodes to run.')
-parser.add_argument('--num_parallel', type=int, default=4,
+# parser.add_argument('--num_parallel', type=int, default=4,
+parser.add_argument('--num_parallel', type=int, default=16,
                     help='Number of processes to sample.')
 parser.add_argument('--cuda', type=int, default=-1, help='cuda device number.')
 parser.add_argument('--data_parallel', action='store_true', default=False,
@@ -71,9 +72,14 @@ parser.add_argument('--train_size', type=int, default=0.7,
                     help='Size of training data.')
 parser.add_argument('--check_rate', type=int, default=0.05,
                     help='Rate of performance check per epoch.')
-parser.add_argument('--epoch', type=int, default=1000)
+parser.add_argument('--epoch', type=int, default=10000)
 parser.add_argument('--deterministic', action='store_true',
                     default=False, help='If True, policy is deterministic.')
+parser.add_argument('--rnn', action='store_true',
+                    default=True, help='If True, network is reccurent.')
+                    # default=False, help='If True, network is reccurent.')
+parser.add_argument('--rnn_batch_size', type=int, default=8,
+                    help='Number of sequences included in batch of rnn.')
 args = parser.parse_args()
 
 device_name = 'cpu' if args.cuda < 0 else "cuda:{}".format(args.cuda)

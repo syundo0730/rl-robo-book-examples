@@ -15,7 +15,7 @@ seed = 42
 np.random.seed(seed)
 torch.manual_seed(seed)
 
-log_dir_name = 'garbage'
+log_dir_name = 'garbage_bc_ppo'
 env_name = 'RoboschoolPremaidAIWalker-v0'
 env = gym.make(env_name)
 env.seed(seed)
@@ -32,7 +32,7 @@ vf_net = VNet(observation_space)
 vf = DeterministicSVfunc(observation_space, vf_net)
 
 # load best policy
-best_path = f'{log_dir_name}/models/pol_max.pkl'
+best_path = f'{log_dir_name}/models/pol_bc.pkl'
 best_pol = GaussianPol(observation_space, action_space, pol_net)
 best_pol.load_state_dict(torch.load(best_path))
 

@@ -105,8 +105,7 @@ parser.add_argument('--kl_targ', type=float, default=0.01)
 parser.add_argument('--init_kl_beta', type=float, default=1)
 
 parser.add_argument('--bc_batch_size', type=int, default=256)
-parser.add_argument('--pretrain', action='store_true', default=True)
-# parser.add_argument('--pretrain', action='store_true', default=False)
+parser.add_argument('--pretrain', action='store_true', default=False)
 parser.add_argument('--bc_epoch', type=int, default=1000)
 args = parser.parse_args()
 

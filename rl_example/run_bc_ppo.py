@@ -13,8 +13,8 @@ import torch
 import gym
 
 from machina.pols import GaussianPol, CategoricalPol, MultiCategoricalPol
-from machina.algos import airl, behavior_clone
-from machina.vfuncs import DeterministicSVfunc, DeterministicSAVfunc
+from machina.algos import behavior_clone, ppo_clip, ppo_kl
+from machina.vfuncs import DeterministicSVfunc
 from machina.envs import GymEnv, C2DEnv
 from machina.traj import Traj
 from machina.traj import epi_functional as ef
@@ -27,7 +27,7 @@ from util.simple_net import PolNet, PolNetLSTM, VNet, DiscrimNet, VNetLSTM
 import premaidai_gym
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--log', type=str, default='garbage_airl',
+parser.add_argument('--log', type=str, default='garbage_bc_ppo',
                     help='Directory name of log.')
 parser.add_argument('--env_name', type=str,
                     default='RoboschoolPremaidAIWalker-v0', help='Name of environment.')
@@ -39,74 +39,60 @@ parser.add_argument('--record', action='store_true',
                     # default=False, help='If True, movie is saved.')
 parser.add_argument('--seed', type=int, default=256)
 parser.add_argument('--max_epis', type=int,
-                    default=100000000, help='Number of episodes to run.')
-parser.add_argument('--num_parallel', type=int, default=4,
+                    default=10000000, help='Number of episodes to run.')
+                    # default=1000000, help='Number of episodes to run.')
+# parser.add_argument('--num_parallel', type=int, default=4,
+parser.add_argument('--num_parallel', type=int, default=16,
                     help='Number of processes to sample.')
 parser.add_argument('--cuda', type=int, default=-1, help='cuda device number.')
 parser.add_argument('--data_parallel', action='store_true', default=False,
                     help='If True, inference is done in parallel on gpus.')
+
+# parser.add_argument('--max_steps_per_iter', type=int, default=10000,
+parser.add_argument('--max_steps_per_iter', type=int, default=20000,
+                    help='Number of steps to use in an iteration.')
+parser.add_argument('--epoch_per_iter', type=int, default=10,
+                    help='Number of epoch in an iteration')
+parser.add_argument('--batch_size', type=int, default=256)
+parser.add_argument('--pol_lr', type=float, default=3e-4,
+                    help='Policy learning rate')
+parser.add_argument('--vf_lr', type=float, default=3e-4,
+                    help='Value function learning rate')
+
+parser.add_argument('--rnn', action='store_true',
+                    default=True, help='If True, network is reccurent.')
+                    # default=False, help='If True, network is reccurent.')
+parser.add_argument('--rnn_batch_size', type=int, default=8,
+                    help='Number of sequences included in batch of rnn.')
+parser.add_argument('--max_grad_norm', type=float, default=10,
+                    help='Value of maximum gradient norm.')
+
+parser.add_argument('--ppo_type', type=str,
+                    choices=['clip', 'kl'], default='clip', help='Type of Proximal Policy Optimization.')
+
+parser.add_argument('--clip_param', type=float, default=0.2,
+                    help='Value of clipping liklihood ratio.')
+
+parser.add_argument('--kl_targ', type=float, default=0.01,
+                    help='Target value of kl divergence.')
+parser.add_argument('--init_kl_beta', type=float,
+                    default=1, help='Initial kl coefficient.')
+
+parser.add_argument('--gamma', type=float, default=0.995,
+                    help='Discount factor.')
+parser.add_argument('--lam', type=float, default=1,
+                    help='Tradeoff value of bias variance.')
 
 parser.add_argument('--expert_dir', type=str, default='data/expert_epis',
                     help='Directory path storing file of expert trajectory.')
 parser.add_argument('--expert_fname', type=str,
                     default='RoboschoolPremaidAIWalker-v0_100epis.pkl', help='Name of pkl file of expert trajectory')
                     # default='Pendulum-v0_100epis.pkl', help='Name of pkl file of expert trajectory')
-
-parser.add_argument('--max_steps_per_iter', type=int, default=50000,
-                    help='Number of steps to use in an iteration.')
-parser.add_argument('--batch_size', type=int, default=50000)
-parser.add_argument('--discrim_batch_size', type=int, default=32)
-parser.add_argument('--pol_lr', type=float, default=1e-4,
-                    help='Policy learning rate.')
-parser.add_argument('--vf_lr', type=float, default=1e-3,
-                    help='Value function learning rate.')
-parser.add_argument('--discrim_lr', type=float, default=3e-4,
-                    help='Discriminator learning rate.')
-
-parser.add_argument('--epoch_per_iter', type=int, default=50,
-                    help='Number of epoch in an iteration')
-parser.add_argument('--discrim_step', type=int, default=10)
-
-parser.add_argument('--gamma', type=float, default=0.995,
-                    help='Discount factor.')
-parser.add_argument('--lam', type=float, default=0.97,
-                    help='Tradeoff value of bias variance.')
-parser.add_argument('--pol_ent_beta', type=float, default=0,
-                    help='Entropy coefficient for policy.')
-
-parser.add_argument('--max_grad_norm', type=float, default=10,
-                    help='Value of maximum gradient norm.')
-
-parser.add_argument('--pol_h1', type=int, default=100,
-                    help='Hidden size of layer1 of policy.')
-parser.add_argument('--pol_h2', type=int, default=100,
-                    help='Hidden size of layer2 of policy.')
-parser.add_argument('--vf_h1', type=int, default=32,
-                    help='Hidden size of layer1 of value function.')
-parser.add_argument('--vf_h2', type=int, default=32,
-                    help='Hidden size of layer2 of value function.')
-parser.add_argument('--discrim_h1', type=int, default=100,
-                    help='Hidden size of layer1 of discriminator.')
-parser.add_argument('--discrim_h2', type=int, default=100,
-                    help='Hidden size of layer2 of discriminator.')
-
-parser.add_argument('--rl_type', type=str,
-                    choices=['trpo', 'ppo_clip', 'ppo_kl'], default='trpo', help='Choice for Reinforcement Learning algorithms.')
-
-parser.add_argument('--clip_param', type=float, default=0.2,
-                    help='Value of clipping liklihood ratio.')
-parser.add_argument('--kl_targ', type=float, default=0.01,
-                    help='Target value of kl divergence.')
-parser.add_argument('--init_kl_beta', type=float,
-                    default=1, help='Initial kl coefficient.')
-
 parser.add_argument('--pretrain', action='store_true', default=True,
                     help='If True, policy is pretrained by behavioral cloning.')
 parser.add_argument('--bc_batch_size', type=int, default=256)
 parser.add_argument('--bc_epoch', type=int, default=1000)
 
-parser.add_argument('--rew_type', type=str,
-                    choices=['adv', 'rew'], default='rew', help='Choice for reward type.')
 args = parser.parse_args()
 
 if not os.path.exists(args.log):
@@ -185,6 +171,8 @@ if args.pretrain:
             _ = behavior_clone.train(
                 expert_traj, pol, optim_pol, args.bc_batch_size
             )
+    torch.save(pol.state_dict(), os.path.join(
+        args.log, 'models', 'pol_bc.pkl'))
 
 while args.max_epis > total_epi:
     with measure('sample'):
