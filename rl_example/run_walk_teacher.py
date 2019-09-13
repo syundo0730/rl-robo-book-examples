@@ -1,5 +1,5 @@
 import pickle
-from math import radians, sin, pi, cos
+from math import radians, sin, pi, cos, atan2
 
 import gym
 import numpy as np
@@ -20,12 +20,16 @@ class _WalkPhaseGenerator:
         half_period = 0.5 * self._period
         if 0 < normalized_elapsed <= half_stop_duration:
             phase = 0
-        elif half_stop_duration < normalized_elapsed <= half_period - half_stop_duration:
+        elif (half_stop_duration < normalized_elapsed
+              <= half_period - half_stop_duration):
             phase = (normalized_elapsed - half_stop_duration) / self._move_period
-        elif half_period - half_stop_duration < normalized_elapsed <= half_period + half_stop_duration:
+        elif (half_period - half_stop_duration < normalized_elapsed
+              <= half_period + half_stop_duration):
             phase = 0.5
-        elif half_period + half_stop_duration < normalized_elapsed <= self._period - half_stop_duration:
-            phase = (normalized_elapsed - 1.5 * self._each_stop_period) / self._move_period
+        elif (half_period + half_stop_duration < normalized_elapsed
+              <= self._period - half_stop_duration):
+            phase = (normalized_elapsed
+                     - 1.5 * self._each_stop_period) / self._move_period
         else:
             phase = 1.0
         return phase
@@ -38,8 +42,10 @@ class _BasicWalkController:
         self._home_pose[13] = radians(60)  # right arm
         self._home_pose[18] = radians(-60)  # left arm
         self._period = period
-        self._stride_phase_generator = _WalkPhaseGenerator(period, each_stop_period=0.15)
-        self._bend_phase_generator = _WalkPhaseGenerator(period, each_stop_period=0.1)
+        self._stride_phase_generator = _WalkPhaseGenerator(
+            period, each_stop_period=0.15)
+        self._bend_phase_generator = _WalkPhaseGenerator(
+            period, each_stop_period=0.1)
         self._dt = env.unwrapped.scene.dt
         self._walk_started_at = None
 
@@ -49,7 +55,8 @@ class _BasicWalkController:
 
     @property
     def _walk_elapsed(self):
-        return self._elapsed - self._walk_started_at if self._walk_started_at else 0
+        return (self._elapsed - self._walk_started_at
+                if self._walk_started_at else 0)
 
     def step(self, obs):
         normalized_elapsed = self._elapsed % self._period
@@ -85,12 +92,12 @@ class _BasicWalkController:
         l_theta_sh_p = 2 * stride_wave
 
         # walking direction control
-        yaw = obs[52]
-        theta_hip_yaw = bend_wave * yaw
+        cos_yaw, sin_yaw = obs[52], obs[53]
+        theta_hip_yaw = 0.3 * bend_wave * atan2(sin_yaw, cos_yaw)
 
         # roll stabilization
-        roll_speed = obs[53]
-        theta_ankle_r += 0.1 * roll_speed
+        roll_speed = obs[54]
+        theta_ankle_r += 0.3 * roll_speed
 
         action = np.zeros_like(self._home_pose)
         action[0] = theta_hip_yaw
@@ -141,7 +148,8 @@ def main():
         print(f'Done episode: {epi_i}, end at step: {step}. Will record result.')
         ep = {k: np.array(v, dtype=np.float32) for k, v in epi.items()}
         epis.append(ep)
-        with open('data/expert_epis/RoboschoolPremaidAIWalker-v0_100epis.pkl', 'wb') as f:
+        with open('data/expert_epis/RoboschoolPremaidAIWalker-v0_100epis.pkl',
+                  'wb') as f:
             pickle.dump(epis, f)
 
 
