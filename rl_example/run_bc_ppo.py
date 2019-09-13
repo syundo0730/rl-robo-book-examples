@@ -49,9 +49,10 @@ parser.add_argument('--data_parallel', action='store_true', default=False,
                     help='If True, inference is done in parallel on gpus.')
 
 # parser.add_argument('--max_steps_per_iter', type=int, default=10000,
-parser.add_argument('--max_steps_per_iter', type=int, default=20000,
+parser.add_argument('--max_steps_per_iter', type=int, default=100000,
                     help='Number of steps to use in an iteration.')
-parser.add_argument('--epoch_per_iter', type=int, default=10,
+# parser.add_argument('--epoch_per_iter', type=int, default=10,
+parser.add_argument('--epoch_per_iter', type=int, default=4,
                     help='Number of epoch in an iteration')
 parser.add_argument('--batch_size', type=int, default=256)
 parser.add_argument('--pol_lr', type=float, default=3e-4,
@@ -64,7 +65,8 @@ parser.add_argument('--rnn', action='store_true',
                     # default=False, help='If True, network is reccurent.')
 parser.add_argument('--rnn_batch_size', type=int, default=8,
                     help='Number of sequences included in batch of rnn.')
-parser.add_argument('--max_grad_norm', type=float, default=10,
+# parser.add_argument('--max_grad_norm', type=float, default=10,
+parser.add_argument('--max_grad_norm', type=float, default=0.5,
                     help='Value of maximum gradient norm.')
 
 parser.add_argument('--ppo_type', type=str,
