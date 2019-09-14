@@ -12,7 +12,7 @@ url = "https://test.pypi.org/simple/"
 python = "^3.7"
 numpy = "^1.17"
 machina-rl = "^0.2.1"
-premaidai_gym = "^0.2.7"
+premaidai_gym = "^0.2.8"
 
 [tool.poetry.dev-dependencies]
 
