@@ -3,7 +3,6 @@ An example of ppo and sac
 """
 
 import argparse
-import copy
 import json
 import os
 from pprint import pprint
@@ -11,10 +10,7 @@ from pprint import pprint
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import gym
 
-import machina as mc
 from machina.pols import GaussianPol
 from machina.algos import sac, ppo_clip
 from machina.vfuncs import DeterministicSVfunc, DeterministicSAVfunc
@@ -47,7 +43,8 @@ parser.add_argument('--max_epis', type=int,
                     default=10000000, help='Number of episodes to run.')
                     # default=1000000, help='Number of episodes to run.')
 parser.add_argument('--max_steps_off', type=int,
-                    default=1000000000000, help='Number of steps stored in off traj.')
+                    default=10000000000000, help='Number of steps stored in off traj.')
+                    # default=1000000000000, help='Number of steps stored in off traj.')
 # parser.add_argument('--num_parallel', type=int, default=4,
 parser.add_argument('--num_parallel', type=int, default=16,
                     help='Number of processes to sample.')
@@ -108,14 +105,26 @@ set_device(device)
 score_file = os.path.join(args.log, 'progress.csv')
 logger.add_tabular_output(score_file)
 
-env = GymEnv(args.env_name, log_dir=os.path.join(
-    args.log, 'movie'), record_video=args.record)
+
+class _RewScaledEnv(GymEnv):
+    """GymEnv to scale reward for sac optimizer"""
+    def __init__(self, scale):
+        super().__init__(args.env_name, log_dir=os.path.join(args.log, 'movie'), record_video=args.record)
+        self._scale = scale
+
+    def step(self, action):
+        next_obs, reward, done, info = super().step(action)
+        return next_obs, self._scale * reward, done, info
+
+
+env = _RewScaledEnv(scale=20)
 env.env.seed(args.seed)
 
 observation_space = env.observation_space
 action_space = env.action_space
 
-pol_net = PolNet(observation_space, action_space)
+# pol_net = PolNet(observation_space, action_space)
+pol_net = PolNet(observation_space, action_space, h1=256, h2=256)
 pol = GaussianPol(observation_space, action_space, pol_net,
                   data_parallel=args.data_parallel, parallel_dim=0)
 
@@ -123,10 +132,12 @@ vf_net = VNet(observation_space)
 vf = DeterministicSVfunc(
     observation_space, vf_net, data_parallel=args.data_parallel, parallel_dim=0)
 
-qf_net = QNet(observation_space, action_space)
+# qf_net = QNet(observation_space, action_space)
+qf_net = QNet(observation_space, action_space, h1=256, h2=256)
 qf = DeterministicSAVfunc(observation_space, action_space, qf_net,
                           data_parallel=args.data_parallel, parallel_dim=0)
-targ_qf_net = QNet(observation_space, action_space)
+# targ_qf_net = QNet(observation_space, action_space)
+targ_qf_net = QNet(observation_space, action_space, h1=256, h2=256)
 targ_qf_net.load_state_dict(qf_net.state_dict())
 targ_qf = DeterministicSAVfunc(
     observation_space, action_space, targ_qf_net, data_parallel=args.data_parallel, parallel_dim=0)
