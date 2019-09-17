@@ -67,9 +67,9 @@ class _BasicWalkController:
         roll_wave = radians(5) * sin(TWO_PI * phase)
         if self._walk_started_at:
             phase_stride = self._stride_phase_generator.update(normalized_elapsed)
-            stride_wave = radians(10) * cos(TWO_PI * phase_stride)
+            stride_wave = radians(15) * cos(TWO_PI * phase_stride)
             phase_bend = self._bend_phase_generator.update(normalized_elapsed)
-            bend_wave = radians(20) * sin(TWO_PI * phase_bend)
+            bend_wave = radians(30) * sin(TWO_PI * phase_bend)
             if 0 < normalized_elapsed < self._period * 0.5:
                 bend_wave_r, bend_wave_l = -bend_wave, 0
             else:
@@ -143,6 +143,7 @@ def main():
             epi['acs'].append(action)
             epi['rews'].append(reward)
             epi['dones'].append(int(done))
+            env.render()
             if done:
                 break
         print(f'Done episode: {epi_i}, end at step: {step}. Will record result.')
