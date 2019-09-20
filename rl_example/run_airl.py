@@ -40,7 +40,9 @@ parser.add_argument('--record', action='store_true',
 parser.add_argument('--seed', type=int, default=256)
 parser.add_argument('--max_epis', type=int,
                     default=100000000, help='Number of episodes to run.')
-parser.add_argument('--num_parallel', type=int, default=4,
+                    # default=1000000, help='Number of episodes to run.')
+# parser.add_argument('--num_parallel', type=int, default=4,
+parser.add_argument('--num_parallel', type=int, default=16,
                     help='Number of processes to sample.')
 parser.add_argument('--cuda', type=int, default=-1, help='cuda device number.')
 parser.add_argument('--data_parallel', action='store_true', default=False,
@@ -52,7 +54,8 @@ parser.add_argument('--expert_fname', type=str,
                     default='RoboschoolPremaidAIWalker-v0_100epis.pkl', help='Name of pkl file of expert trajectory')
                     # default='Pendulum-v0_100epis.pkl', help='Name of pkl file of expert trajectory')
 
-parser.add_argument('--max_steps_per_iter', type=int, default=50000,
+# parser.add_argument('--max_steps_per_iter', type=int, default=50000,
+parser.add_argument('--max_steps_per_iter', type=int, default=100000,
                     help='Number of steps to use in an iteration.')
 parser.add_argument('--batch_size', type=int, default=50000)
 parser.add_argument('--discrim_batch_size', type=int, default=32)
@@ -74,7 +77,8 @@ parser.add_argument('--lam', type=float, default=0.97,
 parser.add_argument('--pol_ent_beta', type=float, default=0,
                     help='Entropy coefficient for policy.')
 
-parser.add_argument('--max_grad_norm', type=float, default=10,
+# parser.add_argument('--max_grad_norm', type=float, default=10,
+parser.add_argument('--max_grad_norm', type=float, default=0.5,
                     help='Value of maximum gradient norm.')
 
 parser.add_argument('--pol_h1', type=int, default=100,
@@ -91,7 +95,8 @@ parser.add_argument('--discrim_h2', type=int, default=100,
                     help='Hidden size of layer2 of discriminator.')
 
 parser.add_argument('--rl_type', type=str,
-                    choices=['trpo', 'ppo_clip', 'ppo_kl'], default='trpo', help='Choice for Reinforcement Learning algorithms.')
+                    choices=['trpo', 'ppo_clip', 'ppo_kl'], default='ppo_clip', help='Choice for Reinforcement Learning algorithms.')
+                    # choices=['trpo', 'ppo_clip', 'ppo_kl'], default='trpo', help='Choice for Reinforcement Learning algorithms.')
 
 parser.add_argument('--clip_param', type=float, default=0.2,
                     help='Value of clipping liklihood ratio.')

@@ -32,7 +32,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--log', type=str, default='garbage_ppo',
                     help='Directory name of log.')
 parser.add_argument('--env_name', type=str,
-                    default='RoboschoolPremaidAIWalker-v0', help='Name of environment.')
+                    default='RoboschoolPremaidAIStabilizationWalker-v0', help='Name of environment.')
+                    # default='RoboschoolPremaidAIWalker-v0', help='Name of environment.')
                     # default='Pendulum-v0', help='Name of environment.')
 parser.add_argument('--c2d', action='store_true',
                     default=False, help='If True, action is discretized.')
@@ -51,15 +52,19 @@ parser.add_argument('--data_parallel', action='store_true', default=False,
                     help='If True, inference is done in parallel on gpus.')
 
 # parser.add_argument('--max_steps_per_iter', type=int, default=10000,
-parser.add_argument('--max_steps_per_iter', type=int, default=100000,
+parser.add_argument('--max_steps_per_iter', type=int, default=1000,
                     help='Number of steps to use in an iteration.')
 # parser.add_argument('--epoch_per_iter', type=int, default=10,
-parser.add_argument('--epoch_per_iter', type=int, default=4,
+# parser.add_argument('--epoch_per_iter', type=int, defaultt=4,
+parser.add_argument('--epoch_per_iter', type=int, default=1,
                     help='Number of epoch in an iteration')
-parser.add_argument('--batch_size', type=int, default=256)
-parser.add_argument('--pol_lr', type=float, default=3e-4,
+# parser.add_argument('--batch_size', type=int, default=256)
+parser.add_argument('--batch_size', type=int, default=128)
+# parser.add_argument('--pol_lr', type=float, default=3e-4,
+parser.add_argument('--pol_lr', type=float, default=1e-3,
                     help='Policy learning rate')
-parser.add_argument('--vf_lr', type=float, default=3e-4,
+# parser.add_argument('--vf_lr', type=float, default=3e-4,
+parser.add_argument('--vf_lr', type=float, default=1e-2,
                     help='Value function learning rate')
 
 parser.add_argument('--rnn', action='store_true',
@@ -145,6 +150,8 @@ sampler = EpiSampler(env, pol, num_parallel=args.num_parallel, seed=args.seed)
 
 optim_pol = torch.optim.Adam(pol_net.parameters(), args.pol_lr)
 optim_vf = torch.optim.Adam(vf_net.parameters(), args.vf_lr)
+scheduler_pol = torch.optim.lr_scheduler.StepLR(optim_pol, step_size=1, gamma=0.99)
+scheduler_vf = torch.optim.lr_scheduler.StepLR(optim_vf, step_size=1, gamma=0.99)
 
 total_epi = 0
 total_step = 0
@@ -209,5 +216,8 @@ while args.max_epis > total_epi:
         args.log, 'models', 'optim_pol_last.pkl'))
     torch.save(optim_vf.state_dict(), os.path.join(
         args.log, 'models', 'optim_vf_last.pkl'))
+
+    scheduler_pol.step(total_epi)
+    scheduler_vf.step(total_epi)
     del traj
 del sampler
