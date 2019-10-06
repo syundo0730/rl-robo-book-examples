@@ -138,6 +138,7 @@ def main():
         for step in range(steps_per_iter):
             # elapsed = extra['elapsed']
             action = walk_controller.step(obs)
+            action = env.unwrapped._absolute_to_relative(action)
             obs, reward, done, extra = env.step(action)
             epi['obs'].append(obs)
             epi['acs'].append(action)
